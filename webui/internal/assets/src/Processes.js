@@ -103,8 +103,8 @@ export default class Processes extends React.Component {
   render() {
     return (
       <section>
-        <header>Processes</header>
-        <p>{this.state.workerPool.length} Worker process(es). {this.state.busyWorker.length} active worker(s) out of {this.workerCount}.</p>
+          <header> <h3>工作池集群管理</h3> </header>
+        <p> 当前线上共 {this.state.workerPool.length} 个工作池， 共 {this.workerCount} 个工人， {this.state.busyWorker.length} 个正忙 .</p>
         {
           this.state.workerPool.map((pool) => {
             let busyWorker = this.getBusyPoolWorker(pool);
@@ -114,16 +114,16 @@ export default class Processes extends React.Component {
                   <table className={styles.table}>
                     <tbody>
                       <tr>
-                        <td>{pool.host}: {pool.pid}</td>
-                        <td>Started <UnixTime ts={pool.started_at}/></td>
-                        <td>Last Heartbeat <UnixTime ts={pool.heartbeat_at}/></td>
-                        <td>Concurrency {pool.concurrency}</td>
+                        <td>Host： {pool.host}: {pool.pid}</td>
+                        <td>启动时间： <UnixTime ts={pool.started_at}/></td>
+                        <td>最近一次的心跳包： <UnixTime ts={pool.heartbeat_at}/></td>
+                        <td>并发数： {pool.concurrency}</td>
                       </tr>
                       <tr>
                         <td colSpan="4">Servicing <ShortList item={pool.job_names} />.</td>
                       </tr>
                       <tr>
-                        <td colSpan="4">{busyWorker.length} active worker(s) and {pool.worker_ids.length - busyWorker.length} idle.</td>
+                        <td colSpan="4">活跃工人： {busyWorker.length}  , 可用工人：{pool.worker_ids.length - busyWorker.length} .  当前执行任务列表：</td>
                       </tr>
                       <tr>
                         <td colSpan="4">

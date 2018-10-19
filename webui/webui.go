@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/DADDYLAB/work"
+	"github.com/DADDYLAB/work/webui/internal/assets"
 	"github.com/braintree/manners"
 	"github.com/gocraft/web"
-	"github.com/gocraft/work"
-	"github.com/gocraft/work/webui/internal/assets"
 	"github.com/gomodule/redigo/redis"
 )
 
@@ -55,6 +55,11 @@ func NewServer(namespace string, pool *redis.Pool, hostPort string) *Server {
 	router.Get("/retry_jobs", (*context).retryJobs)
 	router.Get("/scheduled_jobs", (*context).scheduledJobs)
 	router.Get("/dead_jobs", (*context).deadJobs)
+	router.Get("/pause_job", (*context).pauseJob)
+	router.Get("/continue_job", (*context).continueJob)
+	router.Get("/retry_delete", (*context).retryDelete)
+	router.Get("/schedule_delete", (*context).scheduleDelete)
+
 	router.Post("/delete_dead_job/:died_at:\\d.*/:job_id", (*context).deleteDeadJob)
 	router.Post("/retry_dead_job/:died_at:\\d.*/:job_id", (*context).retryDeadJob)
 	router.Post("/delete_all_dead_jobs", (*context).deleteAllDeadJobs)
@@ -179,6 +184,42 @@ func (c *context) deadJobs(rw web.ResponseWriter, r *web.Request) {
 	}{Count: count, Jobs: jobs}
 
 	render(rw, response, err)
+}
+
+func (c *context) pauseJob(rw web.ResponseWriter, r *web.Request) {
+	r.ParseForm()
+	jobName := r.Form.Get("job_name")
+	err := c.client.PauseJobs(jobName)
+
+	render(rw, map[string]string{"status": "ok"}, err)
+}
+
+func (c *context) continueJob(rw web.ResponseWriter, r *web.Request) {
+	r.ParseForm()
+	jobName := r.Form.Get("job_name")
+	err := c.client.ContinueJobs(jobName)
+
+	render(rw, map[string]string{"status": "ok"}, err)
+}
+
+func (c *context) retryDelete(rw web.ResponseWriter, r *web.Request) {
+	r.ParseForm()
+	jobID := r.Form.Get("job_id")
+	jobT, _ := strconv.ParseInt(r.Form.Get("job_t"), 10, 64)
+
+	err := c.client.DeleteRetryJob(jobT, jobID)
+
+	render(rw, map[string]string{"status": "ok"}, err)
+}
+
+func (c *context) scheduleDelete(rw web.ResponseWriter, r *web.Request) {
+	r.ParseForm()
+	jobID := r.Form.Get("job_id")
+	jobT, _ := strconv.ParseInt(r.Form.Get("job_t"), 10, 64)
+
+	err := c.client.DeleteScheduledJob(jobT, jobID)
+
+	render(rw, map[string]string{"status": "ok"}, err)
 }
 
 func (c *context) deleteDeadJob(rw web.ResponseWriter, r *web.Request) {

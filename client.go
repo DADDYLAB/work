@@ -204,9 +204,10 @@ func (c *Client) WorkerObservations() ([]*WorkerObservation, error) {
 
 // Queue represents a queue that holds jobs with the same name. It indicates their name, count, and latency (in seconds). Latency is a measurement of how long ago the next job to be processed was enqueued.
 type Queue struct {
-	JobName string `json:"job_name"`
-	Count   int64  `json:"count"`
-	Latency int64  `json:"latency"`
+	JobName  string `json:"job_name"`
+	Count    int64  `json:"count"`
+	Latency  int64  `json:"latency"`
+	IsPaused bool   `json:"is_paused"`
 }
 
 // Queues returns the Queue's it finds.
@@ -276,7 +277,65 @@ func (c *Client) Queues() ([]*Queue, error) {
 		}
 	}
 
+	// is_pause
+	for _, s := range queues {
+		conn.Send("GET", redisKeyJobsPaused(c.namespace, s.JobName))
+	}
+
+	if err := conn.Flush(); err != nil {
+		logError("client.queues.flush3", err)
+		return nil, err
+	}
+
+	for _, s := range queues {
+		b, err := redis.Int(conn.Receive())
+		if err != nil && err != redis.ErrNil {
+			logError("client.queues.receive3", err)
+			return nil, err
+		}
+
+		if b == 1 {
+			s.IsPaused = true
+		}
+	}
+
 	return queues, nil
+}
+
+func (c *Client) PauseJobs(jobName string) error {
+	conn := c.pool.Get()
+	defer conn.Close()
+
+	keyPaused := redisKeyJobsPaused(c.namespace, jobName)
+	vals, err := redis.String(conn.Do("SET", keyPaused, 1))
+	if err != nil {
+		logError("client.job_pause", err)
+		return err
+	}
+
+	if vals != "OK" {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) ContinueJobs(jobName string) error {
+	conn := c.pool.Get()
+	defer conn.Close()
+
+	keyPaused := redisKeyJobsPaused(c.namespace, jobName)
+	vals, err := redis.Int(conn.Do("DEL", keyPaused))
+	if err != nil {
+		logError("client.job_continue", err)
+		return err
+	}
+
+	if vals != 1 {
+		return err
+	}
+
+	return nil
 }
 
 // RetryJob represents a job in the retry queue.

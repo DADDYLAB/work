@@ -8,7 +8,6 @@ class UnixTime extends React.Component {
 
     render() {
         let t = new Date(this.props.ts * 1e3);
-        console.log("HAHAHAHA");
         return (
             <time dateTime={t.Format("yyyy/MM/dd hh:mm:ss")}> {t.Format("yyyy/MM/dd hh:mm:ss")} </time>
         );
