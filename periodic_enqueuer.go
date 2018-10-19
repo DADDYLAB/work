@@ -26,6 +26,7 @@ type periodicEnqueuer struct {
 type periodicJob struct {
 	jobName  string
 	spec     string
+	arg      Q
 	schedule cron.Schedule
 }
 
@@ -96,13 +97,25 @@ func (pe *periodicEnqueuer) enqueue() error {
 			epoch := t.Unix()
 			id := makeUniquePeriodicID(pj.jobName, pj.spec, epoch)
 
-			job := &Job{
-				Name: pj.jobName,
-				ID:   id,
+			var job *Job
+			if len(pj.arg) != 0 {
+				job = &Job{
+					Name: pj.jobName,
+					ID:   id,
 
-				// This is technically wrong, but this lets the bytes be identical for the same periodic job instance. If we don't do this, we'd need to use a different approach -- probably giving each periodic job its own history of the past 100 periodic jobs, and only scheduling a job if it's not in the history.
-				EnqueuedAt: epoch,
-				Args:       nil,
+					// This is technically wrong, but this lets the bytes be identical for the same periodic job instance. If we don't do this, we'd need to use a different approach -- probably giving each periodic job its own history of the past 100 periodic jobs, and only scheduling a job if it's not in the history.
+					EnqueuedAt: epoch,
+					Args:       pj.arg,
+				}
+			} else {
+				job = &Job{
+					Name: pj.jobName,
+					ID:   id,
+
+					// This is technically wrong, but this lets the bytes be identical for the same periodic job instance. If we don't do this, we'd need to use a different approach -- probably giving each periodic job its own history of the past 100 periodic jobs, and only scheduling a job if it's not in the history.
+					EnqueuedAt: epoch,
+					Args:       nil,
+				}
 			}
 
 			rawJSON, err := job.serialize()

@@ -13,9 +13,10 @@ import (
 )
 
 var (
-	redisHostPort  = flag.String("redis", ":6379", "redis hostport")
+	redisHostPort  = flag.String("redis", "192.168.1.17:6379", "redis hostport")
+	redisPassword  = flag.String("redispw", "DaddyLab123", "redis password")
 	redisDatabase  = flag.String("database", "0", "redis database")
-	redisNamespace = flag.String("ns", "work", "redis namespace")
+	redisNamespace = flag.String("ns", "{DaddyLab_MSF_1}", "redis namespace")
 	webHostPort    = flag.String("listen", ":5040", "hostport to listen for HTTP JSON API")
 )
 
@@ -24,6 +25,7 @@ func main() {
 
 	fmt.Println("Starting workwebui:")
 	fmt.Println("redis = ", *redisHostPort)
+	fmt.Println("redispw = ", *redisPassword)
 	fmt.Println("database = ", *redisDatabase)
 	fmt.Println("namespace = ", *redisNamespace)
 	fmt.Println("listen = ", *webHostPort)
@@ -34,7 +36,7 @@ func main() {
 		return
 	}
 
-	pool := newPool(*redisHostPort, database)
+	pool := newPool(*redisHostPort, database, *redisPassword)
 
 	server := webui.NewServer(*redisNamespace, pool, *webHostPort)
 	server.Start()
@@ -49,13 +51,17 @@ func main() {
 	fmt.Println("\nQuitting...")
 }
 
-func newPool(addr string, database int) *redis.Pool {
+func newPool(addr string, database int, redispw string) *redis.Pool {
 	return &redis.Pool{
 		MaxActive:   3,
 		MaxIdle:     3,
 		IdleTimeout: 240 * time.Second,
 		Dial: func() (redis.Conn, error) {
-			return redis.DialURL(addr, redis.DialDatabase(database))
+			return redis.Dial("tcp", addr,
+				redis.DialConnectTimeout(10*time.Second),
+				redis.DialPassword(redispw),
+				redis.DialDatabase(database),
+			)
 		},
 		Wait: true,
 	}

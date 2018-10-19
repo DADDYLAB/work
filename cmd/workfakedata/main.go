@@ -67,6 +67,10 @@ func newPool(addr string) *redis.Pool {
 			if err != nil {
 				return nil, err
 			}
+			if _, err := c.Do("AUTH", "DaddyLab123"); err != nil {
+				c.Close()
+				return nil, err
+			}
 			return c, nil
 			//return redis.NewLoggingConn(c, log.New(os.Stdout, "", 0), "redis"), err
 		},
