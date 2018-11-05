@@ -1,6 +1,7 @@
 package work
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strconv"
@@ -372,6 +373,21 @@ func (c *Client) ScheduledJobs(page uint) ([]*ScheduledJob, int64, error) {
 	}
 
 	return jobs, count, nil
+}
+
+func (c *Client) RunNow(jobName string, args string) error {
+	enqueuer := NewEnqueuer(c.namespace, c.pool)
+	// json 转 map[string]interface{}
+	j := make(map[string]interface{})
+	e := json.Unmarshal([]byte(args), &j)
+	if e != nil {
+		return e
+	}
+	_, e = enqueuer.Enqueue(jobName, j)
+	if e != nil{
+		return e
+	}
+	return nil
 }
 
 // RetryJobs returns a list of RetryJob's. The page param is 1-based; each page is 20 items. The total number of items (not pages) in the list of retry jobs is also returned.
