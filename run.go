@@ -28,6 +28,7 @@ func runJob(job *Job, ctxType reflect.Type, middleware []*middlewareHandler, jt 
 			}
 			return x.(error)
 		}
+
 		if jt.IsGeneric {
 			return jt.GenericHandler(job)
 		}
